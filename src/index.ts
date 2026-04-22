@@ -45,10 +45,10 @@ export interface AccessToken {
 export type Scopes = string[];
 
 export interface AccessContext {
-  token?: AccessToken;
-  explicitlyExposedTokens?: ObjStringDict;
-  scopes?: Scopes;
-  refreshToken?: RefreshToken;
+  token?: AccessToken | undefined;
+  explicitlyExposedTokens?: ObjStringDict | undefined;
+  scopes?: Scopes | undefined;
+  refreshToken?: RefreshToken | undefined;
 };
 
 export type ObjStringDict = { [_: string]: string };
@@ -58,40 +58,60 @@ export type URL = string;
 /**
  * A list of OAuth2AuthCodePKCE errors.
  */
-// To "namespace" all errors.
-export class ErrorOAuth2 { toString(): string { return 'ErrorOAuth2'; } }
+type ErrorOAuth2 = {
+  kind: EErrorOAuth2.ErrorUnknown
+      | EErrorOAuth2.ErrorNoAuthCode
+      | EErrorOAuth2.ErrorInvalidReturnedStateParam
+      | EErrorOAuth2.ErrorInvalidJson
+      | EErrorOAuth2.ErrorInvalidScope
+      | EErrorOAuth2.ErrorInvalidRequest
+      | EErrorOAuth2.ErrorInvalidToken,
+} | {
+  kind: EErrorOAuth2.ErrorAuthenticationGrant,
+  value: EErrorAuthenticationGrant,
+} | {
+  kind: EErrorOAuth2.ErrorAccessTokenResponse,
+  value: EErrorAccessTokenResponse,
+}
+ 
+enum EErrorOAuth2 {
+  // For really unknown errors.
+  ErrorUnknown = "ErrorUnknown",
 
-// For really unknown errors.
-export class ErrorUnknown extends ErrorOAuth2 { toString(): string { return 'ErrorUnknown'; }}
+  // Some generic, internal errors that can happen.
+  ErrorNoAuthCode = "ErrorNoAuthCode",
+  ErrorInvalidReturnedStateParam = "ErrorInvalidReturnedStateParam",
+  ErrorInvalidJson = "ErrorInvalidJson",
 
-// Some generic, internal errors that can happen.
-export class ErrorNoAuthCode extends ErrorOAuth2 { toString(): string { return 'ErrorNoAuthCode'; }}
-export class ErrorInvalidReturnedStateParam extends ErrorOAuth2 { toString(): string { return 'ErrorInvalidReturnedStateParam'; }}
-export class ErrorInvalidJson extends ErrorOAuth2 { toString(): string { return 'ErrorInvalidJson'; }}
+  // Errors that occur across many endpoints
+  ErrorInvalidScope = "ErrorInvalidScope",
+  ErrorInvalidRequest = "ErrorInvalidRequest",
+  ErrorInvalidToken = "ErrorInvalidToken",
 
-// Errors that occur across many endpoints
-export class ErrorInvalidScope extends ErrorOAuth2 { toString(): string { return 'ErrorInvalidScope'; }}
-export class ErrorInvalidRequest extends ErrorOAuth2 { toString(): string { return 'ErrorInvalidRequest'; }}
-export class ErrorInvalidToken extends ErrorOAuth2 { toString(): string { return 'ErrorInvalidToken'; }}
+  ErrorAuthenticationGrant = "ErrorAuthenticationGrant",
+  ErrorAccessTokenResponse = "ErrorAccessTokenResponse",
+}
 
 /**
  * Possible authorization grant errors given by the redirection from the
  * authorization server.
  */
-export class ErrorAuthenticationGrant extends ErrorOAuth2 { toString(): string { return 'ErrorAuthenticationGrant'; }}
-export class ErrorUnauthorizedClient extends ErrorAuthenticationGrant { toString(): string { return 'ErrorUnauthorizedClient'; }}
-export class ErrorAccessDenied extends ErrorAuthenticationGrant { toString(): string { return 'ErrorAccessDenied'; }}
-export class ErrorUnsupportedResponseType extends ErrorAuthenticationGrant { toString(): string { return 'ErrorUnsupportedResponseType'; }}
-export class ErrorServerError extends ErrorAuthenticationGrant { toString(): string { return 'ErrorServerError'; }}
-export class ErrorTemporarilyUnavailable extends ErrorAuthenticationGrant { toString(): string { return 'ErrorTemporarilyUnavailable'; }}
+enum EErrorAuthenticationGrant {
+  ErrorUnauthorizedClient = "ErrorUnauthorizedClient",
+  ErrorAccessDenied = "ErrorAccessDenied",
+  ErrorUnsupportedResponseType  = "ErrorUnsupportedResponseType",
+  ErrorServerError = "ErrorServerError",
+  ErrorTemporarilyUnavailable = "ErrorTemporarilyUnavailable",
+}
 
 /**
  * A list of possible access token response errors.
  */
-export class ErrorAccessTokenResponse extends ErrorOAuth2 { toString(): string { return 'ErrorAccessTokenResponse'; }}
-export class ErrorInvalidClient extends ErrorAccessTokenResponse { toString(): string { return 'ErrorInvalidClient'; }}
-export class ErrorInvalidGrant extends ErrorAccessTokenResponse { toString(): string { return 'ErrorInvalidGrant'; }}
-export class ErrorUnsupportedGrantType extends ErrorAccessTokenResponse { toString(): string { return 'ErrorUnsupportedGrantType'; }}
+enum EErrorAccessTokenResponse {
+  ErrorInvalidClient = "ErrorInvalidClient",
+  ErrorInvalidGrant = "ErrorInvalidGrant",
+  ErrorUnsupportedGrantType = "ErrorUnsupportedGrantType",
+}
 
 /**
  * WWW-Authenticate error object structure for less error prone handling.
@@ -101,26 +121,75 @@ export class ErrorWWWAuthenticate {
   public error: string = "";
 }
 
-export const RawErrorToErrorClassMap: { [_: string]: any } = {
-  invalid_request: ErrorInvalidRequest,
-  invalid_grant: ErrorInvalidGrant,
-  unauthorized_client: ErrorUnauthorizedClient,
-  access_denied: ErrorAccessDenied,
-  unsupported_response_type: ErrorUnsupportedResponseType,
-  invalid_scope: ErrorInvalidScope,
-  server_error: ErrorServerError,
-  temporarily_unavailable: ErrorTemporarilyUnavailable,
-  invalid_client: ErrorInvalidClient,
-  unsupported_grant_type: ErrorUnsupportedGrantType,
-  invalid_json: ErrorInvalidJson,
-  invalid_token: ErrorInvalidToken,
+const OAUTH2_ERRORS_HANDLED = [
+  "invalid_request",
+  "invalid_grant",
+  "unauthorized_client",
+  "access_denied",
+  "unsupported_response_type",
+  "invalid_scope",
+  "server_error",
+  "temporarily_unavailable",
+  "invalid_client",
+  "unsupported_grant_type",
+  "invalid_json",
+  "invalid_token",
+]
+
+type OAuth2ErrorsHandled = typeof OAUTH2_ERRORS_HANDLED[number]
+
+export const RawErrorToOAuth2ErrorTypeMap: Record<OAuth2ErrorsHandled, ErrorOAuth2> = {
+  invalid_json: {
+    kind: EErrorOAuth2.ErrorInvalidJson,
+  },
+  invalid_scope: {
+    kind: EErrorOAuth2.ErrorInvalidScope,
+  },
+  invalid_request: {
+    kind: EErrorOAuth2.ErrorInvalidRequest,
+  },
+  invalid_token: {
+    kind: EErrorOAuth2.ErrorInvalidToken,
+  },
+  invalid_grant: {
+    kind: EErrorOAuth2.ErrorAccessTokenResponse,
+    value: EErrorAccessTokenResponse.ErrorInvalidGrant,
+  },
+  unauthorized_client: {
+    kind: EErrorOAuth2.ErrorAuthenticationGrant,
+    value: EErrorAuthenticationGrant.ErrorUnauthorizedClient,
+  },
+  access_denied: {
+    kind: EErrorOAuth2.ErrorAuthenticationGrant,
+    value: EErrorAuthenticationGrant.ErrorAccessDenied,
+  },
+  unsupported_response_type: {
+    kind: EErrorOAuth2.ErrorAuthenticationGrant,
+    value: EErrorAuthenticationGrant.ErrorUnsupportedResponseType,
+  },
+  server_error: {
+    kind: EErrorOAuth2.ErrorAuthenticationGrant,
+    value: EErrorAuthenticationGrant.ErrorServerError,
+  },
+  temporarily_unavailable: {
+    kind: EErrorOAuth2.ErrorAuthenticationGrant,
+    value: EErrorAuthenticationGrant.ErrorTemporarilyUnavailable,
+  },
+  invalid_client: {
+    kind: EErrorOAuth2.ErrorAccessTokenResponse,
+    value: EErrorAccessTokenResponse.ErrorInvalidClient,
+  },
+  unsupported_grant_type: {
+    kind: EErrorOAuth2.ErrorAccessTokenResponse,
+    value: EErrorAccessTokenResponse.ErrorUnsupportedGrantType,
+  },
 };
 
 /**
  * Translate the raw error strings returned from the server into error classes.
  */
 export function toErrorClass(rawError: string): ErrorOAuth2 {
-  return new (RawErrorToErrorClassMap[rawError] || ErrorUnknown)();
+  return RawErrorToOAuth2ErrorTypeMap[rawError] ?? { kind: EErrorOAuth2.ErrorUnknown }
 }
 
 /**
@@ -135,10 +204,10 @@ export function fromWWWAuthenticateHeaderStringToObject(
     .slice("Bearer ".length)
     .replace(/"/g, '')
     .split(', ')
-    .map(tokens => { const [k,v] = tokens.split('='); return {[k]:v}; })
+    .map(tokens => { const [k,v] = tokens.split('='); return {[k ?? Symbol()]:v}; })
     .reduce((a, c) => ({ ...a, ...c}), {});
-
-  return { realm: obj.realm, error: obj.error };
+    
+  return { realm: obj["realm"] ?? "missing", error: obj["error"] ?? "missing" };
 }
 
 /**
@@ -186,7 +255,7 @@ const PKCE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345
 export class OAuth2AuthCodePKCE {
   private config!: Configuration;
   private state: State = {};
-  private authCodeForAccessTokenRequest?: Promise<AccessContext>;
+  private authCodeForAccessTokenRequest?: Promise<AccessContext> | undefined;
 
   constructor(config: Configuration) {
     this.config = config;
@@ -207,13 +276,17 @@ export class OAuth2AuthCodePKCE {
 
       return this
         .getAccessToken()
-        .then(({ token }: AccessContext) => {
+        .then((data: AccessContext | undefined) => {
+          if (data === undefined || data.token === undefined) {
+            return Promise.reject(new Error ('No token'))
+          }
+          
           const configNew: any = Object.assign({}, config);
           if (!configNew.headers) {
             configNew.headers = {};
           }
 
-          configNew.headers[HEADER_AUTHORIZATION] = `Bearer ${token!.value}`;
+          configNew.headers[HEADER_AUTHORIZATION] = `Bearer ${data.token.value}`;
           return fetch(url, configNew, ...rest);
         })
         .then((res) => {
@@ -231,7 +304,7 @@ export class OAuth2AuthCodePKCE {
             ).error
           );
 
-          if (error instanceof ErrorInvalidToken) {
+          if (error.kind === EErrorOAuth2.ErrorInvalidToken) {
             this.config
               .onAccessTokenExpiry(() => this.exchangeRefreshTokenForAccessToken());
           }
@@ -262,7 +335,7 @@ export class OAuth2AuthCodePKCE {
     const stateQueryParam = OAuth2AuthCodePKCE.extractParamFromUrl(location.href, 'state');
     if (stateQueryParam !== state.stateQueryParam) {
       console.warn("state query string parameter doesn't match the one sent! Possible malicious activity somewhere.");
-      return Promise.reject(new ErrorInvalidReturnedStateParam());
+      return Promise.reject({ kind: EErrorOAuth2.ErrorInvalidReturnedStateParam });
     }
 
     state.authorizationCode = code;
@@ -328,7 +401,7 @@ export class OAuth2AuthCodePKCE {
    * function. This is because sometimes not using the refresh token facilities
    * is easier.
    */
-  public getAccessToken(): Promise<AccessContext> {
+  public getAccessToken(): Promise<AccessContext | undefined> {
     this.assertStateAndConfigArePresent();
 
     const { onAccessTokenExpiry } = this.config;
@@ -342,7 +415,7 @@ export class OAuth2AuthCodePKCE {
     } = this.state;
 
     if (!authorizationCode) {
-      return Promise.reject(new ErrorNoAuthCode());
+      return Promise.reject({ kind: EErrorOAuth2.ErrorNoAuthCode });
     }
 
     if (this.authCodeForAccessTokenRequest) {
@@ -639,18 +712,18 @@ export class OAuth2AuthCodePKCE {
     }
 
     // Account for hash URLs that SPAs usually use.
-    queryString = queryString[1].split('#');
-
+    queryString = queryString[1]?.split('#') ?? [];
     const parts = queryString[0]
-      .split('&')
-      .reduce((a: string[], s: string) => a.concat(s.split('=')), []);
+      ?.split('&')
+      .reduce((a: string[], s: string) => a.concat(s.split('=')), [])
+    ?? [];
 
     if (parts.length < 2) {
       return '';
     }
 
     const paramIdx = parts.indexOf(param);
-    return decodeURIComponent(paramIdx >= 0 ? parts[paramIdx + 1] : '');
+    return decodeURIComponent(paramIdx >= 0 ? (parts[paramIdx + 1] ?? ''): '');
   }
 
   /**
@@ -681,7 +754,7 @@ export class OAuth2AuthCodePKCE {
         let binary = '';
         let hashLength = hash.byteLength;
         for (let i: number = 0; i < hashLength; i++) {
-          binary += String.fromCharCode(hash[i]);
+          binary += String.fromCharCode(hash[i] ?? 0);
         }
         return binary;
       })
