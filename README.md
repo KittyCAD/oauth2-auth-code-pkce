@@ -57,7 +57,7 @@ oauth2.fetchAuthorizationCode({ 'another_query_string_param': computedValue });
 
 | Module system                       | File                      |
 |:------------------------------------|:--------------------------|
-| Browser (window.OAuth2AuthCodePKCE) | index.js                  |
+| Browser (window.OAuth2AuthCodePKCE) | index.iife.js             |
 | TypeScript                          | index.ts                  |
 
 ## Development
