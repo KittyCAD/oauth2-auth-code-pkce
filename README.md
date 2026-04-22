@@ -12,7 +12,7 @@ Currently the only Type/JavaScript implementation in public existence.
 
 ## Installation
 
-`npm install @bity/oauth2-auth-code-pkce`
+`npm install @kittycad/oauth2-auth-code-pkce`
 
 ## Usage
 
@@ -65,7 +65,4 @@ oauth2.fetchAuthorizationCode({ 'another_query_string_param': computedValue });
 
 ## Development
 
-### Publishing to NPM
-
-Grab the NPM-generated `bity-oauth2-auth-code-pkce-*.tgz` tarball from CI and
-then use `npm publish $tarball` to publish it to NPM.
+More to come
