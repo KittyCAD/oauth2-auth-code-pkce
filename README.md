@@ -55,11 +55,10 @@ oauth2.fetchAuthorizationCode({ 'another_query_string_param': computedValue });
 
 ## Module systems supported
 
-| Module system                   | File                      |
-|:--------------------------------|:--------------------------|
-| Browser (window)                | index.umd.js              |
-| CommonJS (require e.g. nodejs)  | index.js                  |
-| TypeScript                      | index.ts                  |
+| Module system                       | File                      |
+|:------------------------------------|:--------------------------|
+| Browser (window.OAuth2AuthCodePKCE) | index.js                  |
+| TypeScript                          | index.ts                  |
 
 ## Development
 
