@@ -24,6 +24,9 @@ export enum Stage {
   Initial = 0,
   ReturnedFromAuthServer = 1,
   AuthCodeBeenExchangedForAccessToken = 2,
+  Fetching = 3,
+  Authenticated = 4,
+  NeedsRefresh = 5,
 }
 
 export interface State {
@@ -312,7 +315,8 @@ export class OAuth2AuthCodePKCE {
             ).error
           );
 
-          if (error.kind === EErrorOAuth2.ErrorInvalidToken) {
+          if (error.kind === EErrorOAuth2.ErrorInvalidToken && this.state.stage !== Stage.Fetching) {
+            this.state.stage = Stage.Fetching;
             this.config
               .onAccessTokenExpiry(() => this.exchangeRefreshTokenForAccessToken());
           }
@@ -435,12 +439,14 @@ export class OAuth2AuthCodePKCE {
     }
 
     if (!this.isAuthorized() || stage < Stage.AuthCodeBeenExchangedForAccessToken) {
+      this.state.stage = Stage.Fetching;
       this.authCodeForAccessTokenRequest = this.exchangeAuthCodeForAccessToken();
       return this.authCodeForAccessTokenRequest;
     }
 
     // Depending on the server (and config), refreshToken may not be available.
-    if (refreshToken && this.isAccessTokenExpired()) {
+    if (refreshToken && this.isAccessTokenExpired() && stage !== Stage.Fetching) {
+      this.state.stage = Stage.Fetching;
       return onAccessTokenExpiry(() => this.exchangeRefreshTokenForAccessToken());
     }
 
