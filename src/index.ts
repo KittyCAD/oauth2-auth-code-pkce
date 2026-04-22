@@ -20,6 +20,12 @@ export interface PKCECodes {
   codeVerifier: string;
 }
 
+export enum Stage {
+  Initial = 0,
+  ReturnedFromAuthServer = 1,
+  AuthCodeBeenExchangedForAccessToken = 2,
+}
+
 export interface State {
   isHTTPDecoratorActive?: boolean;
   accessToken?: AccessToken;
@@ -27,7 +33,7 @@ export interface State {
   codeChallenge?: string;
   codeVerifier?: string;
   explicitlyExposedTokens?: ObjStringDict;
-  hasAuthCodeBeenExchangedForAccessToken?: boolean;
+  stage: Stage;
   refreshToken?: RefreshToken;
   stateQueryParam?: string;
   scopes?: string[];
@@ -254,7 +260,9 @@ const PKCE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345
  */
 export class OAuth2AuthCodePKCE {
   private config!: Configuration;
-  private state: State = {};
+  private state: State = {
+    stage: Stage.Initial,
+  };
   private authCodeForAccessTokenRequest?: Promise<AccessContext> | undefined;
 
   constructor(config: Configuration) {
@@ -324,13 +332,17 @@ export class OAuth2AuthCodePKCE {
     if (error) {
       return Promise.reject(toErrorClass(error));
     }
-
+    
     const code = OAuth2AuthCodePKCE.extractParamFromUrl(location.href, 'code');
     if (!code) {
       return Promise.resolve(false);
     }
 
     const state = JSON.parse(localStorage.getItem(LOCALSTORAGE_STATE) || '{}');
+    
+    if (state.stage >= Stage.ReturnedFromAuthServer) {
+      return Promise.resolve(false);
+    }
 
     const stateQueryParam = OAuth2AuthCodePKCE.extractParamFromUrl(location.href, 'state');
     if (stateQueryParam !== state.stateQueryParam) {
@@ -339,7 +351,7 @@ export class OAuth2AuthCodePKCE {
     }
 
     state.authorizationCode = code;
-    state.hasAuthCodeBeenExchangedForAccessToken = false;
+    state.stage = Stage.ReturnedFromAuthServer;
     localStorage.setItem(LOCALSTORAGE_STATE, JSON.stringify(state));
 
     this.setState(state);
@@ -409,7 +421,7 @@ export class OAuth2AuthCodePKCE {
       accessToken,
       authorizationCode,
       explicitlyExposedTokens,
-      hasAuthCodeBeenExchangedForAccessToken,
+      stage,
       refreshToken,
       scopes
     } = this.state;
@@ -422,7 +434,7 @@ export class OAuth2AuthCodePKCE {
       return this.authCodeForAccessTokenRequest;
     }
 
-    if (!this.isAuthorized() || !hasAuthCodeBeenExchangedForAccessToken) {
+    if (!this.isAuthorized() || stage < Stage.AuthCodeBeenExchangedForAccessToken) {
       this.authCodeForAccessTokenRequest = this.exchangeAuthCodeForAccessToken();
       return this.authCodeForAccessTokenRequest;
     }
@@ -563,7 +575,9 @@ export class OAuth2AuthCodePKCE {
    * Resets the state of the client. Equivalent to "logging out" the user.
    */
   public reset() {
-    this.setState({});
+    this.setState({
+      stage: Stage.Initial,
+    });
     this.authCodeForAccessTokenRequest = undefined;
   }
 
@@ -635,7 +649,7 @@ export class OAuth2AuthCodePKCE {
         const { explicitlyExposedTokens } = this.config;
         let scopes = [];
         let tokensToExpose = {};
-        this.state.hasAuthCodeBeenExchangedForAccessToken = true;
+        this.state.stage = Stage.AuthCodeBeenExchangedForAccessToken;
         this.authCodeForAccessTokenRequest = undefined;
 
         const accessToken: AccessToken = {
