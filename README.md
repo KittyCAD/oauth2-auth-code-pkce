@@ -12,13 +12,10 @@ grant ([RFC 6749 § 4.1][]) with PKCE ([RFC 7636][]) for client side protection.
 
 `npm install @kittycad/oauth2-auth-code-pkce`
 
-## Usage
+## Demo
 
-See the source code of `tests/panel.html`. It's commented with helpful
-information.
-
-Run `npm run serve:tests` and navigate to 
-http://localhost:8080/tests/panel.html
+See the source code of `pubilc/index.html`. It's commented with helpful
+information. You can run the demo with `make serve`.
 
 This page acts as a test panel for various scenarios. Play around! :)
 

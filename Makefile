@@ -1,6 +1,10 @@
 .PHONY: all
 all: build
 
+.PHONY: serve
+serve: node_modules/
+	npx esbuild --bundle --global-name=OAuth2AuthCodePKCE src/index.ts --outdir=public --servedir=public --serve=localhost:3000
+
 .PHONY: build
 build: node_modules/
 	-mkdir pkg/

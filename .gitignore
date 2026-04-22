@@ -1,3 +1,5 @@
+tsconfig.tsbuildinfo
+pkg/
 *.tgz
 index.js
 index.umd.js

@@ -2,22 +2,20 @@
 <button onclick="authorize()">Authorize</button>
 
 <!-- Includes the OAuth client. -->
-<script src="../index.umd.js"></script>
+<script src="/index.js"></script>
 <script>
-const { OAuth2AuthCodePKCE } = window.OAuth2AuthCodePKCE;
+const { OAuth2AuthCodePKCE: OAuth2 } = window.OAuth2AuthCodePKCE;
 
-// This is just an example using our infrastructure. This was developed against
-// ORY Hydra, if that help to know. You will need to change the values to
-// something you have access to.
-const oauth = new OAuth2AuthCodePKCE({
-  extraAuthorizationParams: {
-    'test': '1',
-    'hello': 'world'
-  },
-  authorizationUrl: 'https://connect.bity.io/oauth2/auth',
-  tokenUrl: 'https://connect.bity.io/oauth2/token',
+// You will need to change the values to something you have access to.
+const oauth = new OAuth2({
+  // extraAuthorizationParams: {
+  //   'test': '1',
+  //   'hello': 'world'
+  // },
+  authorizationUrl: 'https://api.zoo.dev/oauth2/authorize',
+  tokenUrl: 'https://api.zoo.dev/oauth2/token',
   clientId: '5e510f25-9c41-407b-8fe0-3825f7445b92',
-  scopes: ['https://auth.bity.io/scopes/bookmarks.manage'],
+  scopes: ['modeling'],
   redirectUrl: 'http://localhost:8000/return',
   onAccessTokenExpiry(refreshAccessToken) {
     console.log("Expired! Access token needs to be renewed.");
