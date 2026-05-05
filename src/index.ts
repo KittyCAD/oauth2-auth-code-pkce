@@ -439,7 +439,6 @@ export class OAuth2AuthCodePKCE {
     }
 
     if (!this.isAuthorized() || stage < Stage.AuthCodeBeenExchangedForAccessToken) {
-      this.state.stage = Stage.Fetching;
       this.authCodeForAccessTokenRequest = this.exchangeAuthCodeForAccessToken();
       return this.authCodeForAccessTokenRequest;
     }
