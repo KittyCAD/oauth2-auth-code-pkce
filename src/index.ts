@@ -68,7 +68,7 @@ export type URL = string;
 /**
  * A list of OAuth2AuthCodePKCE errors.
  */
-type ErrorOAuth2 = {
+export type ErrorOAuth2 = {
   kind: EErrorOAuth2.ErrorUnknown
       | EErrorOAuth2.ErrorNoAuthCode
       | EErrorOAuth2.ErrorInvalidReturnedStateParam
@@ -84,7 +84,7 @@ type ErrorOAuth2 = {
   value: EErrorAccessTokenResponse,
 }
  
-enum EErrorOAuth2 {
+export enum EErrorOAuth2 {
   // For really unknown errors.
   ErrorUnknown = "ErrorUnknown",
 
@@ -106,7 +106,7 @@ enum EErrorOAuth2 {
  * Possible authorization grant errors given by the redirection from the
  * authorization server.
  */
-enum EErrorAuthenticationGrant {
+export enum EErrorAuthenticationGrant {
   ErrorUnauthorizedClient = "ErrorUnauthorizedClient",
   ErrorAccessDenied = "ErrorAccessDenied",
   ErrorUnsupportedResponseType  = "ErrorUnsupportedResponseType",
@@ -117,7 +117,7 @@ enum EErrorAuthenticationGrant {
 /**
  * A list of possible access token response errors.
  */
-enum EErrorAccessTokenResponse {
+export enum EErrorAccessTokenResponse {
   ErrorInvalidClient = "ErrorInvalidClient",
   ErrorInvalidGrant = "ErrorInvalidGrant",
   ErrorUnsupportedGrantType = "ErrorUnsupportedGrantType",
@@ -131,7 +131,7 @@ export class ErrorWWWAuthenticate {
   public error: string = "";
 }
 
-const OAUTH2_ERRORS_HANDLED = [
+export const OAUTH2_ERRORS_HANDLED = [
   "invalid_request",
   "invalid_grant",
   "unauthorized_client",
@@ -146,7 +146,7 @@ const OAUTH2_ERRORS_HANDLED = [
   "invalid_token",
 ]
 
-type OAuth2ErrorsHandled = typeof OAUTH2_ERRORS_HANDLED[number]
+export type OAuth2ErrorsHandled = typeof OAUTH2_ERRORS_HANDLED[number]
 
 export const RawErrorToOAuth2ErrorTypeMap: Record<OAuth2ErrorsHandled, ErrorOAuth2> = {
   invalid_json: {
@@ -355,7 +355,7 @@ export class OAuth2AuthCodePKCE {
       console.warn("state query string parameter doesn't match the one sent! Possible malicious activity somewhere.");
       return Promise.reject({ kind: EErrorOAuth2.ErrorInvalidReturnedStateParam });
     }
-
+    
     state.authorizationCode = code;
     state.stage = Stage.ReturnedFromAuthServer;
     localStorage.setItem(LOCALSTORAGE_STATE, JSON.stringify(state));
