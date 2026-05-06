@@ -21,12 +21,13 @@ export interface PKCECodes {
 }
 
 export enum Stage {
-  Initial = 0,
-  ReturnedFromAuthServer = 1,
-  AuthCodeBeenExchangedForAccessToken = 2,
-  NeedsRefresh = 3,
-  Fetching = 4,
-  Authenticated = 5,
+  Initial,
+  GoingToAuthServer,
+  ReturnedFromAuthServer,
+  AuthCodeBeenExchangedForAccessToken,
+  NeedsRefresh,
+  Fetching,
+  Authenticated ,
 }
 
 export interface State {
@@ -337,17 +338,18 @@ export class OAuth2AuthCodePKCE {
       return Promise.reject(toErrorClass(error));
     }
     
+    const state = JSON.parse(localStorage.getItem(LOCALSTORAGE_STATE) || '{}');
+   
+    // The previous stage before we left for the auth server.
+    if (state.stage !== Stage.GoingToAuthServer) {
+      return Promise.resolve(false);
+    }
+
     const code = OAuth2AuthCodePKCE.extractParamFromUrl(location.href, 'code');
     if (!code) {
       return Promise.resolve(false);
     }
-
-    const state = JSON.parse(localStorage.getItem(LOCALSTORAGE_STATE) || '{}');
     
-    if (state.stage === Stage.ReturnedFromAuthServer) {
-      return Promise.resolve(false);
-    }
-
     const stateQueryParam = OAuth2AuthCodePKCE.extractParamFromUrl(location.href, 'state');
     if (stateQueryParam !== state.stateQueryParam) {
       console.warn("state query string parameter doesn't match the one sent! Possible malicious activity somewhere.");
@@ -381,6 +383,7 @@ export class OAuth2AuthCodePKCE {
 
     this.state = {
       ...this.state, 
+      stage: Stage.GoingToAuthServer,
       codeChallenge,
       codeVerifier,
       stateQueryParam,
@@ -406,7 +409,7 @@ export class OAuth2AuthCodePKCE {
 
       url = `${url}&${OAuth2AuthCodePKCE.objectToQueryString(extraParameters)}`
     }
-
+    
     location.replace(url);
   }
 
