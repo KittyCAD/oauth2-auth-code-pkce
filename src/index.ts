@@ -24,9 +24,9 @@ export enum Stage {
   Initial = 0,
   ReturnedFromAuthServer = 1,
   AuthCodeBeenExchangedForAccessToken = 2,
-  Fetching = 3,
-  Authenticated = 4,
-  NeedsRefresh = 5,
+  NeedsRefresh = 3,
+  Fetching = 4,
+  Authenticated = 5,
 }
 
 export interface State {
@@ -315,8 +315,8 @@ export class OAuth2AuthCodePKCE {
             ).error
           );
 
-          if (error.kind === EErrorOAuth2.ErrorInvalidToken && this.state.stage !== Stage.Fetching) {
-            this.state.stage = Stage.Fetching;
+          if (error.kind === EErrorOAuth2.ErrorInvalidToken && this.state.stage !== Stage.NeedsRefresh) {
+            this.state.stage = Stage.NeedsRefresh;
             this.config
               .onAccessTokenExpiry(() => this.exchangeRefreshTokenForAccessToken());
           }
@@ -344,7 +344,7 @@ export class OAuth2AuthCodePKCE {
 
     const state = JSON.parse(localStorage.getItem(LOCALSTORAGE_STATE) || '{}');
     
-    if (state.stage >= Stage.ReturnedFromAuthServer) {
+    if (state.stage === Stage.ReturnedFromAuthServer) {
       return Promise.resolve(false);
     }
 
